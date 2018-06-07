@@ -8,37 +8,41 @@ import (
 	"path"
 )
 
+type Config struct {
+	SshHostname          string
+	SshPort              string
+	SocketLocationRemote string
+	SocketLocationLocal  string
+	SshUserName          string
+	SshControlSocket     string
+	Command              string
+	ConfigFile           string
+}
+
 var (
-	hostname             string
-	port                 string
-	socketLocationRemote string
-	socketLocationLocal  string
-	sshUserName          string
-	sshControlSocket     string
-	command              string
-	configFile           string
+	conf Config
 )
 
 func init() {
 	log.SetFlags(0)
+	setflags()
 	load_config_file()
-	parseflags()
-	if socketLocationLocal == "/tmp/.docker-hostname.sock" {
-		socketLocationLocal = fmt.Sprintf("/tmp/.docker-%s@%s:%s.sock", sshUserName, hostname, port)
+	flag.Parse() // Load again to override config file with cmdline params
+	if conf.SocketLocationLocal == "/tmp/.docker-hostname.sock" {
+		conf.SocketLocationLocal = fmt.Sprintf("/tmp/.docker-%s@%s:%s.sock", conf.SshUserName, conf.SshHostname, conf.SshPort)
 	}
 }
 
-func parseflags() {
+func setflags() {
 	// Parse program parameters
-	flag.StringVar(&hostname, "host", "localhost", "Hostname that the docker daemon runs on (Default makes no sense :) )")
-	flag.StringVar(&port, "port", "22", "SSH port on the remote docker host")
-	flag.StringVar(&socketLocationRemote, "socketLocationRemote", "/var/run/docker.sock", "Docker socket location on the remote host")
-	flag.StringVar(&socketLocationLocal, "socketLocationsLocal", "/tmp/.docker-hostname.sock", "Docker socket location")
-	flag.StringVar(&sshUserName, "ssh-user", os.Getenv("USER"), "SSH username to use on remote server - Leave empty to use your current login")
-	flag.StringVar(&sshControlSocket, "ssh-control-socket", "", "Path to the generated SSH control socket - Leave empty to use OpenSSHs config")
-	flag.StringVar(&configFile, "config-file", "./.docker-socket-tunnel-helper", "Location of config file")
+	flag.StringVar(&conf.SshHostname, "host", "localhost", "Hostname that the docker daemon runs on (Default makes no sense :) )")
+	flag.StringVar(&conf.SshPort, "port", "22", "SSH port on the remote docker host")
+	flag.StringVar(&conf.SocketLocationRemote, "socketLocationRemote", "/var/run/docker.sock", "Docker socket location on the remote host")
+	flag.StringVar(&conf.SocketLocationLocal, "socketLocationsLocal", "/tmp/.docker-hostname.sock", "Docker socket location")
+	flag.StringVar(&conf.SshUserName, "ssh-user", os.Getenv("USER"), "SSH username to use on remote server - Leave empty to use your current login")
+	flag.StringVar(&conf.SshControlSocket, "ssh-control-socket", "", "Path to the generated SSH control socket - Leave empty to use OpenSSHs config")
+	flag.StringVar(&conf.ConfigFile, "config-file", "./.docker-socket-tunnel-helper", "Location of config file")
 	flag.Usage = usage
-	flag.Parse()
 }
 
 func usage() {
@@ -50,21 +54,22 @@ func usage() {
 
 func main() {
 	if len(os.Args) > 1 {
-		command = os.Args[1]
+		conf.Command = os.Args[1]
 	} else {
 		// fmt.Fprintf(os.Stderr, "Need a command and [possibly] options; new, connect or disconnect\n")
 		flag.Usage()
 	}
 
 	switch {
-	case command == "new":
+	case conf.Command == "new":
 		setup_config()
-	case command == "connect":
+	case conf.Command == "connect":
 		connect_to_server()
-	case command == "disconnect":
+	case conf.Command == "disconnect":
 		disconnect_from_server()
 	}
 
-	println(fmt.Sprintf("Making socket %s from host %s:%s available as %s", socketLocationRemote, hostname, port, socketLocationLocal))
+	println(fmt.Sprintf("Making socket %s from host %s:%s available as %s", conf.SocketLocationRemote, conf.SshHostname, conf.SshPort, conf.SocketLocationLocal))
+	println(fmt.Sprintf("Config file: %s", conf.ConfigFile))
 
 }

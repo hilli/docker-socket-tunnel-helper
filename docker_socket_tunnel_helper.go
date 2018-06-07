@@ -2,15 +2,16 @@ package main
 
 import (
 	"fmt"
-	"os"
 )
 
 func load_config_file() {
-	_, err := os.Stat(configFile)
-	if err != nil {
-		// Config found - Overwriting
+	// _, err := os.Stat(conf.ConfigFile)
+	// if err != nil {
+	// 	if _, err := toml.DecodeFile(conf.ConfigFile, &conf); err != nil {
+	// 		println("Failed to load config file") // stderr?
+	// 	}
 
-	}
+	// }
 }
 
 func setup_config() {
@@ -19,7 +20,7 @@ func setup_config() {
 
 func connect_to_server() {
 	println("Connecting...")
-	println(fmt.Sprintf("export DOCKER_HOST=%s", socketLocationLocal))
+	println(fmt.Sprintf("export DOCKER_HOST=%s", conf.SocketLocationLocal))
 }
 
 func disconnect_from_server() {
